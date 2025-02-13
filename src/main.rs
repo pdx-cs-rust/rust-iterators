@@ -10,7 +10,6 @@ impl Counter {
             end: r.end,
         }
     }
-
 }
 
 fn range_iter(mut r: std::ops::Range<usize>) -> impl Iterator<Item = usize> {
@@ -26,8 +25,8 @@ fn range_iter(mut r: std::ops::Range<usize>) -> impl Iterator<Item = usize> {
 }
 
 fn range_iter_generic<T>(mut r: std::ops::Range<T>) -> impl Iterator<Item = T>
-    where
-       T: std::cmp::PartialOrd + std::ops::AddAssign + Clone + num_traits::Num,
+where
+    T: std::cmp::PartialOrd + std::ops::AddAssign + Clone + num_traits::Num,
 {
     std::iter::from_fn(move || {
         if r.start < r.end {
@@ -44,7 +43,10 @@ impl Iterator for Counter {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Counter{ ref mut start, ref end } = self;
+        let Counter {
+            ref mut start,
+            ref end,
+        } = self;
         if *start < *end {
             let result = *start;
             *start += 1;
@@ -55,29 +57,29 @@ impl Iterator for Counter {
     }
 }
 
-/*
-
-struct Skipper<T> {
+struct Jumping<T> {
     iter: T,
     skip: Option<usize>,
 }
 
-
-impl<T> Skipper<T> {
+impl<T> Jumping<T> {
     fn new(iter: T) -> Self {
-        Skipper {
+        Jumping {
             iter,
             skip: Some(0),
         }
     }
 }
 
-impl<T: Iterator<Item=usize>> Iterator for Skipper<T> {
+impl<T: Iterator<Item = usize>> Iterator for Jumping<T> {
     type Item = usize;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(skip) = self.skip {
-            let result = self.iter.skip(skip).next();
+            for _ in 0..skip {
+                let _ = self.iter.next();
+            }
+            let result = self.iter.next();
             self.skip = result;
             result
         } else {
@@ -86,17 +88,15 @@ impl<T: Iterator<Item=usize>> Iterator for Skipper<T> {
     }
 }
 
-/*
-impl<T: Iterator<Item=usize>> IntoIterator for Skipper<T> {
-    type Item = usize;
-    type IntoIter = Skipper<T>;
+trait JumpingExt<T> {
+    fn jumping(self) -> Jumping<T>;
+}
 
-    fn into_iter(self) -> Self::IntoIter {
-        Skipper::new(self)
+impl<T: Iterator<Item = usize>> JumpingExt<T> for T {
+    fn jumping(self) -> Jumping<T> {
+        Jumping::new(self)
     }
 }
-*/
-*/
 
 fn main() {
     for v in Counter::new(0..2) {
@@ -149,7 +149,7 @@ fn main() {
     let _c = c.iter();
     // c is a mutable reference type
     let _c = c.iter_mut();
-    
+
     // x has the type that matches _c
     while let Some(x) = _c.next() {
         ...
@@ -166,10 +166,14 @@ fn main() {
     }
     println!();
 
-    let mut x = (0..17)
-        .map(|v| {
-            println!("{}", v);
-            v + 1
-        });
+    let mut x = (0..17).map(|v| {
+        println!("{}", v);
+        v + 1
+    });
     let _ = x.next();
+    println!();
+
+    for v in (0..100).jumping() {
+        println!("{}", v);
+    }
 }
